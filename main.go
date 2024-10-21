@@ -33,9 +33,8 @@ func main() {
 			ctx.JSON(200, gin.H{"msg": "ola mundo !"})
 		})
 		v1.POST("/send", handle.HandleSend(environments.Email, environments.Pass))
-		v1.GET("/list/:Inbox ", func(ctx *gin.Context) {
-
-		})
+		v1.GET("/list-box", handle.HandleBox(environments.Email, environments.Pass))
+		v1.GET("/list/:Inbox ", handle.EmailHandle(environments.Email, environments.Pass))
 	}
 
 	app.Run(":8080")
