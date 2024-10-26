@@ -1,6 +1,7 @@
 package client
 
 import (
+	entity "Email/server/Entity"
 	"bytes"
 	"log"
 
@@ -23,14 +24,7 @@ func (f *ImapClient) LoginImap(e string, p string) {
 	f.cImap = c
 }
 
-type ReturnData struct {
-	Subject string
-	To      string
-	From    string
-	Body    string
-}
-
-func (f *ImapClient) GetEmails(e string, p string) []ReturnData {
+func (f *ImapClient) GetEmails(e string, p string) []entity.Email {
 
 	// List mailboxes
 	done := make(chan error, 1)
@@ -54,36 +48,38 @@ func (f *ImapClient) GetEmails(e string, p string) []ReturnData {
 		done <- f.cImap.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope}, messages)
 	}()
 
-	var data []ReturnData
+	var data []entity.Email
 	i := 0
 
-    for msg := range messages {
-        // Verificar se msg.Envelope ou Body é nulo
-        if msg == nil || msg.Envelope == nil {
-            continue
-        }
+	for msg := range messages {
+		// Verificar se msg.Envelope ou Body é nulo
+		if msg == nil || msg.Envelope == nil {
+			continue
+		}
 
-        var body string
-        if msg.Body != nil {
-            bodyReader := msg.GetBody(&imap.BodySectionName{})
-            if bodyReader != nil {
-                buf := new(bytes.Buffer)
-                buf.ReadFrom(bodyReader)
-                body = buf.String()
-            }
-        }
+		var body string
+		if msg.Body != nil {
+			bodyReader := msg.GetBody(&imap.BodySectionName{})
+			if bodyReader != nil {
+				buf := new(bytes.Buffer)
+				buf.ReadFrom(bodyReader)
+				body = buf.String()
+			}
+		}
 
-        // Verificar se os campos From e To existem
-      
-        newData := ReturnData{
-            Subject: msg.Envelope.Subject,
-            From:    msg.Envelope.To,
-            To:      msg.Envelope.From,
-            Body:    body, // Corpo convertido para string
-        }
-        data = append(data, newData)
-        i++
-    }
+		// Verificar se os campos From e To existem
+		From := string(msg.Envelope.To[0].HostName)
+		To := string(msg.Envelope.From[0].HostName)
+
+		newData := entity.Email{
+			Subject: msg.Envelope.Subject,
+			From:    From,
+			To:      To,
+			Body:    body, // Corpo convertido para string
+		}
+		data = append(data, newData)
+		i++
+	}
 
 	if err := <-done; err != nil {
 		log.Fatal(err)
